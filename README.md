@@ -9,9 +9,9 @@ jobs:
   helm-diff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
-      - uses: <owner>/helm-diff-action@v1
+      - uses: actions/checkout@v7.0.1
+      - uses: azure/setup-helm@v5.0.1
+      - uses: zemendes1/helm-diff-action@v1
         with:
           chart: charts/my-app
           values: |
