@@ -26,12 +26,54 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Download helm-diff
+      id: install
+      shell: bash
+      env:
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        if [ -z "$ACTION_REF" ]; then
+          echo "bin=$RUNNER_TEMP/helm-diff" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        case "$RUNNER_OS/$RUNNER_ARCH" in
+          Linux/X64) platform=linux_amd64 ;;
+          Linux/ARM64) platform=linux_arm64 ;;
+          *) echo "::error::Unsupported runner $RUNNER_OS/$RUNNER_ARCH"; exit 1 ;;
+        esac
+
+        # Resolve the ref the action is used at (v1, v1.2.3 or a commit) to the vX.Y.Z release on the same commit
+        repo="$GITHUB_SERVER_URL/$ACTION_REPOSITORY"
+        tags=$(git ls-remote --tags "$repo")
+        commit=$(awk -v ref="refs/tags/$ACTION_REF" '$2 == ref || $2 == ref "^{}" { c = $1 } END { print c }' <<<"$tags")
+        version=$(awk -v c="${commit:-$ACTION_REF}" '$1 == c { print $2 }' <<<"$tags" |
+          sed -e 's|^refs/tags/||' -e 's|\^{}$||' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+        if [ -z "$version" ]; then
+          echo "::error::No helm-diff release found for $ACTION_REPOSITORY@$ACTION_REF"
+          exit 1
+        fi
+
+        dir="$RUNNER_TEMP/helm-diff-action/$version"
+        bin="$dir/helm-diff_$platform"
+        if [ ! -x "$bin" ]; then
+          mkdir -p "$dir"
+          url="$repo/releases/download/$version"
+          curl -fsSL --retry 3 -o "$bin" "$url/helm-diff_$platform"
+          curl -fsSL --retry 3 -o "$dir/checksums.txt" "$url/checksums.txt"
+          (cd "$dir" && grep " helm-diff_$platform\$" checksums.txt | shasum -a 256 --check)
+          chmod +x "$bin"
+        fi
+        echo "bin=$bin" >> "$GITHUB_OUTPUT"
+
     - name: Run helm diff
       id: diff
       shell: bash
       env:
+        HELM_DIFF: ${{ steps.install.outputs.bin }}
         CHART: ${{ inputs.chart }}
         VALUES: ${{ inputs.values }}
         BASE_REF: ${{ inputs.base-ref }}
         ARGS: ${{ inputs.args }}
-      run: bash "$GITHUB_ACTION_PATH/helm-diff.sh"
+      run: '"$HELM_DIFF"'

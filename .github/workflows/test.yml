@@ -15,39 +15,25 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v5.0.1
 
-      - name: Diff unchanged chart
-        id: unchanged
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: helm-diff/go.mod
+          cache-dependency-path: helm-diff/go.mod
+
+      - name: Run tests
+        run: go -C helm-diff test ./...
+
+      - name: Build helm-diff
+        run: go build -C helm-diff -o "$RUNNER_TEMP/helm-diff" .
+
+      - name: Run action
+        id: action
         uses: ./
         with:
-          chart: test/chart
-          values: test/values-prod.yaml
+          chart: helm-diff/testdata/chart
+          values: helm-diff/testdata/values-prod.yaml
           base-ref: ${{ github.sha }}
 
-      - name: Assert no changes
-        run: test "${{ steps.unchanged.outputs.changed }}" = false
-
-      - name: Modify chart values
-        run: sed -i s/hello/changed/ test/chart/values.yaml
-
-      - name: Diff modified chart
-        id: modified
-        uses: ./
-        with:
-          chart: test/chart
-          base-ref: ${{ github.sha }}
-
-      - name: Assert changes detected
-        run: test "${{ steps.modified.outputs.changed }}" = true
-
-      - name: Create chart missing on base
-        run: cp -r test/chart test/new-chart
-
-      - name: Diff new chart
-        id: new
-        uses: ./
-        with:
-          chart: test/new-chart
-          base-ref: ${{ github.sha }}
-
-      - name: Assert new chart detected
-        run: test "${{ steps.new.outputs.changed }}" = true
+      - name: Assert action output
+        run: test "${{ steps.action.outputs.changed }}" = false
