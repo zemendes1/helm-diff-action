@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: azure/setup-helm@v5.0.1
-      - uses: <owner>/helm-diff-action@v1
+      - uses: zemendes1/helm-diff-action@v1
         with:
           chart: charts/my-app
           values: |
