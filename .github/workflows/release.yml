@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: helm-diff/go.mod
+          cache-dependency-path: helm-diff/go.mod
+
+      - name: Run tests
+        run: go -C helm-diff test ./...
+
+      - name: Build binaries
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          for target in linux/amd64 linux/arm64; do
+            GOOS=${target%/*} GOARCH=${target#*/} go build -C helm-diff -trimpath -ldflags="-s -w" \
+              -o "$RUNNER_TEMP/dist/helm-diff_${target%/*}_${target#*/}" .
+          done
+          cd "$RUNNER_TEMP/dist" && sha256sum helm-diff_* > checksums.txt
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes "$RUNNER_TEMP"/dist/*
+
+      - name: Move major version tag
+        run: |
+          major=${GITHUB_REF_NAME%%.*}
+          git tag --force "$major"
+          git push --force origin "refs/tags/$major"

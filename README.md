@@ -1,6 +1,6 @@
 # Helm Diff Action
 
-Show how a Helm chart's rendered manifests change between the base branch and your feature branch. The action runs `helm template` on both branches and prints a unified diff. It needs no cluster and no Helm plugins.
+Show how a Helm chart's rendered manifests change between the base branch and your feature branch. The action runs `helm template` on both branches and prints a unified diff. It needs no cluster and no Helm plugins, and runs on Linux runners (x64 and ARM64).
 
 ## Usage
 
@@ -11,9 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: azure/setup-helm@v5.0.1
-      - uses: actions/setup-go@v7.0.0
-        with:
-          go-version: "1.27"
       - uses: zemendes1/helm-diff-action@v1
         with:
           chart: charts/my-app
