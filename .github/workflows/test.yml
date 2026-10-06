@@ -9,32 +9,45 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Unchanged chart
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Diff unchanged chart
         id: unchanged
         uses: ./
         with:
           chart: test/chart
           values: test/values-prod.yaml
           base-ref: ${{ github.sha }}
-      - run: test "${{ steps.unchanged.outputs.changed }}" = false
 
-      - name: Modified chart
+      - name: Assert no changes
+        run: test "${{ steps.unchanged.outputs.changed }}" = false
+
+      - name: Modify chart values
         run: sed -i s/hello/changed/ test/chart/values.yaml
-      - id: modified
+
+      - name: Diff modified chart
+        id: modified
         uses: ./
         with:
           chart: test/chart
           base-ref: ${{ github.sha }}
-      - run: test "${{ steps.modified.outputs.changed }}" = true
 
-      - name: Chart missing on base
+      - name: Assert changes detected
+        run: test "${{ steps.modified.outputs.changed }}" = true
+
+      - name: Create chart missing on base
         run: cp -r test/chart test/new-chart
-      - id: new
+
+      - name: Diff new chart
+        id: new
         uses: ./
         with:
           chart: test/new-chart
           base-ref: ${{ github.sha }}
-      - run: test "${{ steps.new.outputs.changed }}" = true
+
+      - name: Assert new chart detected
+        run: test "${{ steps.new.outputs.changed }}" = true
