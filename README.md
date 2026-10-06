@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: azure/setup-helm@v5.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: "1.27"
       - uses: zemendes1/helm-diff-action@v1
         with:
           chart: charts/my-app

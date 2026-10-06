@@ -26,6 +26,7 @@ outputs:
 runs:
   using: composite
   steps:
+    # TODO: Download the prebuilt helm-diff binary from the release instead of expecting it in $RUNNER_TEMP
     - name: Run helm diff
       id: diff
       shell: bash
@@ -34,4 +35,4 @@ runs:
         VALUES: ${{ inputs.values }}
         BASE_REF: ${{ inputs.base-ref }}
         ARGS: ${{ inputs.args }}
-      run: bash "$GITHUB_ACTION_PATH/helm-diff.sh"
+      run: '"$RUNNER_TEMP/helm-diff"'
