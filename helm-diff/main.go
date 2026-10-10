@@ -50,6 +50,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	diffs := []chartDiff{
+		{chartPath: opts.Chart,
+			diff:       buf.String(),
+			hasChanged: changed},
+	}
+	formatComment(diffs)
 	return setOutput("changed", fmt.Sprint(changed))
 }
 
