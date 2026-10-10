@@ -44,10 +44,19 @@ func run() error {
 		return err
 	}
 
-	changed, err := helmDiff(strings.TrimSpace(string(top)), opts, os.Stdout)
+	var buf strings.Builder
+	w := io.MultiWriter(&buf, os.Stdout)
+	changed, err := helmDiff(strings.TrimSpace(string(top)), opts, w)
 	if err != nil {
 		return err
 	}
+
+	diffs := []chartDiff{
+		{chartPath: opts.Chart,
+			diff:       buf.String(),
+			hasChanged: changed},
+	}
+	formatComment(diffs)
 	return setOutput("changed", fmt.Sprint(changed))
 }
 
