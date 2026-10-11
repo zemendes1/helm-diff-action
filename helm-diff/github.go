@@ -28,3 +28,7 @@ func getPrNumber() (int, error) {
 
 	return info.PullRequest.Number, err
 }
+
+func postPRComment(comment string, prNumber int, githubAPIURL string, githubRepository string, githubToken string) error {
+	return nil
+}

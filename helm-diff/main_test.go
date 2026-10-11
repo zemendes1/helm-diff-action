@@ -129,6 +129,7 @@ func TestRun(t *testing.T) {
 	t.Setenv("ARGS", "--namespace prod")
 	t.Setenv("GITHUB_OUTPUT", output)
 	t.Setenv("GITHUB_EVENT_PATH", event) // a push event, so run() doesn't comment
+	t.Setenv("GITHUB_API_URL", "https://api.github.invalid")
 
 	if err := run(); err != nil {
 		t.Fatalf("run() error = %v", err)

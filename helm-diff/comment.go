@@ -32,7 +32,3 @@ func formatComment(chartDiffs []chartDiff) string {
 	}
 	return comment.String()
 }
-
-func postComment(comment string, prNumber int) (bool, error) {
-	return true, nil
-}
