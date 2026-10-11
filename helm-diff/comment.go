@@ -23,9 +23,9 @@ func formatComment(chartDiffs []chartDiff) string {
 	for index, d := range chartDiffs {
 		fmt.Fprintf(&comment, "\n### %d. %s:", index+1, d.chartPath)
 		if d.hasChanged {
-			comment.WriteString("```diff \n")
+			comment.WriteString("\n```diff\n")
 			comment.WriteString(d.diff)
-			comment.WriteString("``` \n")
+			comment.WriteString("```")
 		} else {
 			comment.WriteString("\nNo diff detected.")
 		}
