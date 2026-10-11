@@ -56,7 +56,13 @@ func run() error {
 			diff:       buf.String(),
 			hasChanged: changed},
 	}
-	formatComment(diffs)
+
+	prNumber, err := getPrNumber()
+	if err != nil {
+		return err
+	}
+
+	postComment(formatComment(diffs), prNumber)
 	return setOutput("changed", fmt.Sprint(changed))
 }
 
