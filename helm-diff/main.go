@@ -61,8 +61,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-
-	postComment(formatComment(diffs), prNumber)
+	if prNumber != 0 {
+		postComment(formatComment(diffs), prNumber)
+	}
 	return setOutput("changed", fmt.Sprint(changed))
 }
 
