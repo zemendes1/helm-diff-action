@@ -1,6 +1,10 @@
 name: Helm Diff
 description: Show how a chart's rendered manifests change between the base branch and the current branch
 
+branding:
+  icon: anchor
+  color: blue
+
 inputs:
   chart:
     description: Path to the chart, relative to the repository root
