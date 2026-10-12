@@ -20,8 +20,9 @@
 - [ ] `postPRComment`: send `POST /repos/{repo}/issues/{number}/comments` with `net/http`, error on any status other than 201
 - [ ] Test `postPRComment` against an `httptest` server: method, path, headers and body
 - [ ] Decide whether to comment when no chart changed
-- [ ] `action.yml`: `github-token` input (default `github.token`) passed as `GITHUB_TOKEN`, and an input to turn commenting off
-- [ ] `test.yml`: `pull-requests: write` permission; README: inputs and required permissions
+- [x] `action.yml`: `github-token` input (default `github.token`) passed as `GITHUB_TOKEN`
+- [ ] `action.yml`: an input to turn commenting off
+- [x] `test.yml`: `pull-requests: write` permission; README: inputs and required permissions
 - [ ] Check on a real PR: each push adds a new comment, pushes to `main` post nothing
 
 ### Diff several charts in one run, or only the charts a PR touches
