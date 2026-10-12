@@ -118,12 +118,18 @@ func TestHelmDiff(t *testing.T) {
 func TestRun(t *testing.T) {
 	dir := newRepo(t)
 	output := filepath.Join(t.TempDir(), "output")
+	event := filepath.Join(t.TempDir(), "event.json")
+	if err := os.WriteFile(event, []byte(`{"ref": "refs/heads/main"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	t.Chdir(filepath.Join(dir, "chart"))
 	t.Setenv("CHART", "chart")
 	t.Setenv("BASE_REF", "main")
 	t.Setenv("VALUES", "values-prod.yaml\nvalues-missing.yaml\n")
 	t.Setenv("ARGS", "--namespace prod")
 	t.Setenv("GITHUB_OUTPUT", output)
+	t.Setenv("GITHUB_EVENT_PATH", event) // a push event, so run() doesn't comment
+	t.Setenv("GITHUB_API_URL", "https://api.github.invalid")
 
 	if err := run(); err != nil {
 		t.Fatalf("run() error = %v", err)

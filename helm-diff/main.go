@@ -37,6 +37,11 @@ func run() error {
 		return errors.New("CHART and BASE_REF must be set")
 	}
 
+	githubOutput := os.Getenv("GITHUB_OUTPUT")
+	if githubOutput == "" {
+		return errors.New("GITHUB_OUTPUT must be set")
+	}
+
 	revParse := exec.Command("git", "rev-parse", "--show-toplevel")
 	revParse.Stderr = os.Stderr
 	top, err := revParse.Output()
@@ -44,11 +49,35 @@ func run() error {
 		return err
 	}
 
-	changed, err := helmDiff(strings.TrimSpace(string(top)), opts, os.Stdout)
+	var buf strings.Builder
+	w := io.MultiWriter(&buf, os.Stdout)
+	changed, err := helmDiff(strings.TrimSpace(string(top)), opts, w)
 	if err != nil {
 		return err
 	}
-	return setOutput("changed", fmt.Sprint(changed))
+
+	diffs := []chartDiff{
+		{chartPath: opts.Chart,
+			diff:       buf.String(),
+			hasChanged: changed},
+	}
+
+	prNumber, err := getPrNumber()
+	if err != nil {
+		return err
+	}
+	if prNumber != 0 {
+		githubAPIURL := os.Getenv("GITHUB_API_URL")
+		githubRepository := os.Getenv("GITHUB_REPOSITORY")
+		githubToken := os.Getenv("GITHUB_TOKEN")
+		if githubAPIURL == "" || githubRepository == "" || githubToken == "" {
+			return errors.New("GITHUB_API_URL, GITHUB_REPOSITORY, and GITHUB_TOKEN must be set")
+		}
+		if err := postPRComment(formatComment(diffs), prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
+			return err
+		}
+	}
+	return setOutput("changed", fmt.Sprint(changed), githubOutput)
 }
 
 // helmDiff writes a unified diff of the chart's rendered manifests between opts.BaseRef and the
@@ -115,12 +144,8 @@ func render(dir string, opts options, out string) error {
 	return cmd.Run()
 }
 
-func setOutput(name, value string) error {
-	path := os.Getenv("GITHUB_OUTPUT")
-	if path == "" {
-		return nil
-	}
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+func setOutput(name, value string, githubOutput string) error {
+	f, err := os.OpenFile(githubOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
