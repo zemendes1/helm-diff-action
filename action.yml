@@ -17,6 +17,10 @@ inputs:
     description: Extra arguments passed to `helm template`
     required: false
     default: ""
+  github-token:
+    description: "Token used to comment on the pull request. Needs the `pull-requests: write` permission"
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   changed:
@@ -76,4 +80,5 @@ runs:
         VALUES: ${{ inputs.values }}
         BASE_REF: ${{ inputs.base-ref }}
         ARGS: ${{ inputs.args }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: '"$HELM_DIFF"'
