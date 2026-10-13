@@ -24,7 +24,13 @@ func TestFormatComment(t *testing.T) {
 				chartPath:  "charts/api",
 				diff:       "--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n",
 				hasChanged: true}},
-			want: "Ran helm diff for 2 charts:\n### 1. charts/web:\nNo diff detected.\n### 2. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n```"}}
+			want: "Ran helm diff for 2 charts:\n### 1. charts/web:\nNo diff detected.\n### 2. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n```"},
+		{name: "diff without trailing newline",
+			chartDiffs: []chartDiff{{
+				chartPath:  "charts/api",
+				diff:       "--- main\n+++ HEAD\n@@ -1 +1 @@\n-  env: \"prod\"\n+  env: \"staging\"",
+				hasChanged: true}},
+			want: "Ran helm diff for 1 chart:\n### 1. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -1 +1 @@\n-  env: \"prod\"\n+  env: \"staging\"\n```"}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

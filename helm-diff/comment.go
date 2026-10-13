@@ -25,6 +25,9 @@ func formatComment(chartDiffs []chartDiff) string {
 		if d.hasChanged {
 			comment.WriteString("\n```diff\n")
 			comment.WriteString(d.diff)
+			if !strings.HasSuffix(d.diff, "\n") {
+				comment.WriteString("\n")
+			}
 			comment.WriteString("```")
 		} else {
 			comment.WriteString("\nNo diff detected.")

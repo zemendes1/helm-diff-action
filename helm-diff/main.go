@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,11 +36,6 @@ func run() error {
 	}
 	if opts.Chart == "" || opts.BaseRef == "" {
 		return errors.New("CHART and BASE_REF must be set")
-	}
-
-	githubOutput := os.Getenv("GITHUB_OUTPUT")
-	if githubOutput == "" {
-		return errors.New("GITHUB_OUTPUT must be set")
 	}
 
 	revParse := exec.Command("git", "rev-parse", "--show-toplevel")
@@ -76,6 +72,11 @@ func run() error {
 		if err := postPRComment(formatComment(diffs), prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
 			return err
 		}
+	}
+	githubOutput := os.Getenv("GITHUB_OUTPUT")
+	if githubOutput == "" {
+		slog.Warn("GITHUB_OUTPUT unset, not writing outputs", "changed", changed)
+		return nil
 	}
 	return setOutput("changed", fmt.Sprint(changed), githubOutput)
 }

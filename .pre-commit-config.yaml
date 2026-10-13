@@ -21,3 +21,9 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
+      - id: go-test
+        name: go test
+        entry: bash -c 'unset GIT_INDEX_FILE; cd helm-diff && go test ./...'
+        language: system
+        files: ^helm-diff/
+        pass_filenames: false
