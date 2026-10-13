@@ -56,11 +56,11 @@ func postPRComment(comment string, prNumber int, githubAPIURL string, githubRepo
 	if err != nil {
 		return err
 	}
-	if response.StatusCode != http.StatusCreated {
-		return err
-	}
-
 	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusCreated {
+		return fmt.Errorf("posting PR comment: status %d", response.StatusCode)
+	}
 
 	return nil
 }
