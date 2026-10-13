@@ -143,6 +143,19 @@ func TestRun(t *testing.T) {
 	}
 }
 
+func TestRunLocally(t *testing.T) {
+	dir := newRepo(t)
+	t.Chdir(filepath.Join(dir, "chart"))
+	t.Setenv("CHART", "chart")
+	t.Setenv("BASE_REF", "main")
+	t.Setenv("GITHUB_OUTPUT", "")
+	t.Setenv("GITHUB_EVENT_PATH", "")
+
+	if err := run(); err != nil {
+		t.Fatalf("run() error = %v", err)
+	}
+}
+
 func TestRunRequiresInputs(t *testing.T) {
 	t.Setenv("CHART", "")
 	t.Setenv("BASE_REF", "main")

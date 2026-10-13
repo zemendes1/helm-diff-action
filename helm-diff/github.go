@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -19,21 +20,26 @@ type prCommentBody struct {
 }
 
 func getPrNumber() (int, error) {
-	data, err := os.ReadFile(os.Getenv("GITHUB_EVENT_PATH"))
+	filePath := os.Getenv("GITHUB_EVENT_PATH")
+	if filePath == "" {
+		slog.Warn("GITHUB_EVENT_PATH unset, not commenting")
+		return 0, nil
+	}
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("reading event file: %w", err)
 	}
 
 	var info pullRequestInfo
 	if err := json.Unmarshal(data, &info); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("parsing event file %s: %w", filePath, err)
 	}
 
 	if info.PullRequest == nil {
 		return 0, nil
 	}
 
-	return info.PullRequest.Number, err
+	return info.PullRequest.Number, nil
 }
 
 func postPRComment(comment string, prNumber int, githubAPIURL string, githubRepository string, githubToken string) error {

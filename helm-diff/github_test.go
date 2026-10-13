@@ -59,3 +59,32 @@ func TestPostPRComment(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPrNumber(t *testing.T) {
+	tests := []struct {
+		name      string
+		eventPath string
+		want      int
+		wantErr   bool
+	}{
+		{name: "pull request event", eventPath: "testdata/pull-request-event.json", want: 7},
+		{name: "push event", eventPath: "testdata/push-event.json", want: 0},
+		{name: "unset", eventPath: "", want: 0},
+		{name: "missing file", eventPath: "testdata/missing-event.json", wantErr: true},
+		{name: "invalid JSON", eventPath: "testdata/invalid-event.json", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("GITHUB_EVENT_PATH", tt.eventPath)
+
+			got, err := getPrNumber()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("getPrNumber() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Errorf("getPrNumber() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
