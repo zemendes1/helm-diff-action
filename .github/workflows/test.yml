@@ -31,7 +31,7 @@ jobs:
       - name: Build helm-diff
         run: go build -C helm-diff -o "$RUNNER_TEMP/helm-diff" .
 
-      - name: Run action
+      - name: Run action with no changes
         id: action
         uses: ./
         with:
