@@ -67,11 +67,11 @@ func TestGetPrNumber(t *testing.T) {
 		want      int
 		wantErr   bool
 	}{
-		{name: "pull request event", eventPath: "testdata/pull-request-event.json", want: 7},
-		{name: "push event", eventPath: "testdata/push-event.json", want: 0},
+		{name: "pull request event", eventPath: "testdata/events/pull-request-event.json", want: 7},
+		{name: "push event", eventPath: "testdata/events/push-event.json", want: 0},
 		{name: "unset", eventPath: "", want: 0},
-		{name: "missing file", eventPath: "testdata/missing-event.json", wantErr: true},
-		{name: "invalid JSON", eventPath: "testdata/invalid-event.json", wantErr: true},
+		{name: "missing file", eventPath: "testdata/events/missing-event.json", wantErr: true},
+		{name: "invalid JSON", eventPath: "testdata/events/invalid-event.json", wantErr: true},
 	}
 
 	for _, tt := range tests {

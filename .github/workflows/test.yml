@@ -36,7 +36,7 @@ jobs:
         uses: ./
         with:
           chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/values-prod.yaml
+          values: helm-diff/testdata/chart/values-prod.yaml
           base-ref: ${{ github.sha }}
           comment: false
 
@@ -45,14 +45,14 @@ jobs:
 
       - name: Change the manifests
         run: |
-          echo "env: staging" > helm-diff/testdata/values-prod.yaml
+          echo "env: staging" > helm-diff/testdata/chart/values-prod.yaml
 
       - name: Run action with changes
         id: action-changed
         uses: ./
         with:
           chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/values-prod.yaml
+          values: helm-diff/testdata/chart/values-prod.yaml
           base-ref: ${{ github.sha }}
 
       - name: Assert action output with changes

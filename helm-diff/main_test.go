@@ -20,7 +20,7 @@ func TestHelmDiff(t *testing.T) {
 	}{
 		{
 			name:       "unchanged chart",
-			opts:       options{Chart: "chart", Values: []string{"values-prod.yaml"}},
+			opts:       options{Chart: "chart", Values: []string{"chart/values-prod.yaml"}},
 			wantOutput: []string{"No changes."},
 		},
 		{
@@ -47,8 +47,8 @@ func TestHelmDiff(t *testing.T) {
 		},
 		{
 			name:        "values file missing on head",
-			opts:        options{Chart: "chart", Values: []string{"values-prod.yaml"}},
-			edit:        removeAll("values-prod.yaml"),
+			opts:        options{Chart: "chart", Values: []string{"chart/values-prod.yaml"}},
+			edit:        removeAll("chart/values-prod.yaml"),
 			wantChanged: true,
 			wantOutput:  []string{`-  env: "prod"`, `+  env: "dev"`},
 		},
@@ -125,7 +125,7 @@ func TestRun(t *testing.T) {
 	t.Chdir(filepath.Join(dir, "chart"))
 	t.Setenv("CHART", "chart")
 	t.Setenv("BASE_REF", "main")
-	t.Setenv("VALUES", "values-prod.yaml\nvalues-missing.yaml\n")
+	t.Setenv("VALUES", "chart/values-prod.yaml\nvalues-missing.yaml\n")
 	t.Setenv("ARGS", "--namespace prod")
 	t.Setenv("GITHUB_OUTPUT", output)
 	t.Setenv("GITHUB_EVENT_PATH", event) // a push event, so run() doesn't comment
