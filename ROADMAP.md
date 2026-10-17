@@ -3,7 +3,6 @@
 ## v1: Marketplace release
 
 ### Post the diff as a pull request comment, creating a new comment on new pushes
-- [ ] Truncate the comment to GitHub's 65,536-character limit, keeping the code block closed and pointing to the job log
 - [ ] `action.yml`: an input to turn commenting off
 
 ### Diff every chart under a directory

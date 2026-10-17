@@ -69,9 +69,13 @@ func run() error {
 		if githubAPIURL == "" || githubRepository == "" || githubToken == "" {
 			return errors.New("GITHUB_API_URL, GITHUB_REPOSITORY, and GITHUB_TOKEN must be set")
 		}
-		if err := postPRComment(formatComment(diffs), prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
-			return err
+		comments := formatComment(diffs)
+		for _, comment := range comments {
+			if err := postPRComment(comment, prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
+				return err
+			}
 		}
+
 	}
 	githubOutput := os.Getenv("GITHUB_OUTPUT")
 	if githubOutput == "" {
