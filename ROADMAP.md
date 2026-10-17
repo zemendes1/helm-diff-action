@@ -9,8 +9,3 @@
 - [ ] `values` paths are relative to each chart's directory and skipped where missing; move `testdata/values-prod.yaml` into the test chart
 - [ ] `action.yml`: replace `chart` with `charts-dir` (a single chart's directory still works); update the README
 - [ ] `test.yml`: diff a directory with two charts where only one changes
-- [ ] Split the 65,536-character budget fairly across changed charts
-
-### Per-resource diff instead of one big text diff
-- [ ] Split rendered manifests into resources by kind, namespace and name
-- [ ] Report added, removed and changed resources, with a diff per changed resource
