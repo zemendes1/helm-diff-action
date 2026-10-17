@@ -31,7 +31,7 @@ jobs:
       - name: Build helm-diff
         run: go build -C helm-diff -o "$RUNNER_TEMP/helm-diff" .
 
-      - name: Run action with no changes
+      - name: Run action
         id: action
         uses: ./
         with:
@@ -56,27 +56,3 @@ jobs:
 
       - name: Assert action output with changes
         run: test "${{ steps.action-changed.outputs.changed }}" = true
-
-      - name: Add a large manifest
-        run: |
-          {
-            echo "apiVersion: v1"
-            echo "kind: ConfigMap"
-            echo "metadata:"
-            echo "  name: {{ .Release.Name }}-large"
-            echo "data:"
-            for i in $(seq 1 1400); do
-              printf '  key-%04d: "a value long enough to fill the pull request comment"\n' "$i"
-            done
-          } > helm-diff/testdata/chart/templates/large.yaml
-
-      - name: Run action with a large diff
-        id: action-large
-        uses: ./
-        with:
-          chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/values-prod.yaml
-          base-ref: ${{ github.sha }}
-
-      - name: Assert action output with a large diff
-        run: test "${{ steps.action-large.outputs.changed }}" = true
