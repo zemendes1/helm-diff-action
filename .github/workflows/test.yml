@@ -31,13 +31,14 @@ jobs:
       - name: Build helm-diff
         run: go build -C helm-diff -o "$RUNNER_TEMP/helm-diff" .
 
-      - name: Run action
+      - name: Run action with no changes and no comment
         id: action
         uses: ./
         with:
           chart: helm-diff/testdata/chart
           values: helm-diff/testdata/values-prod.yaml
           base-ref: ${{ github.sha }}
+          comment: false
 
       - name: Assert action output
         run: test "${{ steps.action.outputs.changed }}" = false

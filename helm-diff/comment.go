@@ -11,27 +11,59 @@ type chartDiff struct {
 	hasChanged bool
 }
 
-func formatComment(chartDiffs []chartDiff) string {
-	var comment strings.Builder
+const maxCharacterSize = 65536
+
+func formatComment(chartDiffs []chartDiff) []string {
+	var currentComment strings.Builder
+	var comments []string
 
 	if len(chartDiffs) == 1 {
-		fmt.Fprintf(&comment, "Ran helm diff for %d chart:", len(chartDiffs))
+		fmt.Fprintf(&currentComment, "Ran helm diff for %d chart:", len(chartDiffs))
 	} else {
-		fmt.Fprintf(&comment, "Ran helm diff for %d charts:", len(chartDiffs))
+		fmt.Fprintf(&currentComment, "Ran helm diff for %d charts:", len(chartDiffs))
 	}
 
+	openDiff := ("\n```diff\n")
+	closeDiff := ("```")
+	newLine := "\n"
+	noDiff := "\nNo diff detected."
+
+	symbolsLenght := len(openDiff) + len(closeDiff) + len(newLine)
+
 	for index, d := range chartDiffs {
-		fmt.Fprintf(&comment, "\n### %d. %s:", index+1, d.chartPath)
+		heading := fmt.Sprintf("\n### %d. %s:", index+1, d.chartPath)
+
+		headingSize := len(heading) + len(noDiff)
 		if d.hasChanged {
-			comment.WriteString("\n```diff\n")
-			comment.WriteString(d.diff)
-			if !strings.HasSuffix(d.diff, "\n") {
-				comment.WriteString("\n")
+			firstLine, _, _ := strings.Cut(d.diff, newLine)
+			headingSize = len(heading) + len(openDiff) + len(firstLine) + len(newLine) + symbolsLenght
+		}
+		if currentComment.Len()+headingSize > maxCharacterSize {
+			comments = append(comments, currentComment.String())
+			currentComment.Reset()
+		}
+		currentComment.WriteString(heading)
+
+		if d.hasChanged {
+			currentComment.WriteString(openDiff)
+			for line := range strings.Lines(d.diff) {
+				if currentComment.Len()+len(line)+symbolsLenght > maxCharacterSize {
+					currentComment.WriteString(closeDiff)
+					comments = append(comments, currentComment.String())
+					currentComment.Reset()
+
+					currentComment.WriteString(openDiff)
+				}
+				currentComment.WriteString(line)
 			}
-			comment.WriteString("```")
+			if !strings.HasSuffix(d.diff, newLine) {
+				currentComment.WriteString(newLine)
+			}
+			currentComment.WriteString(closeDiff)
 		} else {
-			comment.WriteString("\nNo diff detected.")
+			currentComment.WriteString(noDiff)
 		}
 	}
-	return comment.String()
+	comments = append(comments, currentComment.String())
+	return comments
 }

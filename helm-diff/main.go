@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -37,6 +38,13 @@ func run() error {
 	if opts.Chart == "" || opts.BaseRef == "" {
 		return errors.New("CHART and BASE_REF must be set")
 	}
+	postComment := true
+	if v := os.Getenv("COMMENT"); v != "" {
+		var err error
+		if postComment, err = strconv.ParseBool(v); err != nil {
+			return fmt.Errorf("COMMENT must be true or false, got %q", v)
+		}
+	}
 
 	revParse := exec.Command("git", "rev-parse", "--show-toplevel")
 	revParse.Stderr = os.Stderr
@@ -62,16 +70,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if prNumber != 0 {
+	if postComment && prNumber != 0 {
 		githubAPIURL := os.Getenv("GITHUB_API_URL")
 		githubRepository := os.Getenv("GITHUB_REPOSITORY")
 		githubToken := os.Getenv("GITHUB_TOKEN")
 		if githubAPIURL == "" || githubRepository == "" || githubToken == "" {
 			return errors.New("GITHUB_API_URL, GITHUB_REPOSITORY, and GITHUB_TOKEN must be set")
 		}
-		if err := postPRComment(formatComment(diffs), prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
-			return err
+		comments := formatComment(diffs)
+		for _, comment := range comments {
+			if err := postPRComment(comment, prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
+				return err
+			}
 		}
+
 	}
 	githubOutput := os.Getenv("GITHUB_OUTPUT")
 	if githubOutput == "" {

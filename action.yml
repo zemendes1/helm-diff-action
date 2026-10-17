@@ -25,6 +25,10 @@ inputs:
     description: "Token used to comment on the pull request. Needs the `pull-requests: write` permission"
     required: false
     default: ${{ github.token }}
+  comment:
+    description: "Post the diff as a pull request comment: `true` or `false`"
+    required: false
+    default: "true"
 
 outputs:
   changed:
@@ -85,4 +89,5 @@ runs:
         BASE_REF: ${{ inputs.base-ref }}
         ARGS: ${{ inputs.args }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        COMMENT: ${{ inputs.comment }}
       run: '"$HELM_DIFF"'
