@@ -2,9 +2,6 @@
 
 ## v1: Marketplace release
 
-### Post the diff as a pull request comment, creating a new comment on new pushes
-- [ ] `action.yml`: an input to turn commenting off
-
 ### Diff every chart under a directory
 - [ ] Find charts under a directory: every directory with a `Chart.yaml` on the base ref or on HEAD, so new and deleted charts are included
 - [ ] Run `helmDiff` once per chart, with one `chartDiff` per chart, fetching the base ref only once

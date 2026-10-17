@@ -32,6 +32,7 @@ jobs:
 | `base-ref`     | no       | PR base branch / default branch | Branch or commit to compare against                           |
 | `args`         | no       |                                 | Extra arguments passed to `helm template`                     |
 | `github-token` | no       | `${{ github.token }}`           | Token used to comment on the pull request                     |
+| `comment`      | no       | `true`                          | Post the diff as a pull request comment: `true` or `false`    |
 
 Values files that don't exist on the base branch are skipped there. If the chart itself doesn't exist on the base branch, every manifest shows as added.
 
