@@ -17,9 +17,7 @@ jobs:
       - uses: azure/setup-helm@v5.0.1
       - uses: zemendes1/helm-diff-action@v1
         with:
-          chart: charts/my-app
-          values: |
-            charts/my-app/values-prod.yaml
+          charts-dir: charts/
 ```
 
 
@@ -27,14 +25,12 @@ jobs:
 
 | Name           | Required | Default                         | Description                                                   |
 |----------------|----------|---------------------------------|---------------------------------------------------------------|
-| `chart`        | yes      |                                 | Path to the chart, relative to the repository root            |
-| `values`       | no       |                                 | Newline-separated list of values files, relative to repo root |
+| `charts-dir`        | yes      |                                 | Path to the charts directory, relative to the repository root            |
 | `base-ref`     | no       | PR base branch / default branch | Branch or commit to compare against                           |
 | `args`         | no       |                                 | Extra arguments passed to `helm template`                     |
 | `github-token` | no       | `${{ github.token }}`           | Token used to comment on the pull request                     |
 | `comment`      | no       | `true`                          | Post the diff as a pull request comment: `true` or `false`    |
 
-Values files that don't exist on the base branch are skipped there. If the chart itself doesn't exist on the base branch, every manifest shows as added.
 
 ## Permissions
 

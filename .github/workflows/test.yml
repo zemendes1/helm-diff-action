@@ -35,8 +35,7 @@ jobs:
         id: action
         uses: ./
         with:
-          chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/chart/values-prod.yaml
+          charts-dir: helm-diff/testdata/chart
           base-ref: ${{ github.sha }}
           comment: false
 
@@ -51,8 +50,7 @@ jobs:
         id: action-changed
         uses: ./
         with:
-          chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/chart/values-prod.yaml
+          charts-dir: helm-diff/testdata/chart
           base-ref: ${{ github.sha }}
 
       - name: Assert action output with changes

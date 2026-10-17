@@ -1,18 +1,14 @@
 name: Helm Diff
-description: Show how a chart's rendered manifests change between the base branch and the current branch
+description: Show how each chart's rendered manifests change between the base branch and the current branch, per environment
 
 branding:
   icon: anchor
   color: blue
 
 inputs:
-  chart:
-    description: Path to the chart, relative to the repository root
+  charts-dir:
+    description: Directory with the charts, relative to the repository root; can be a single chart's directory. Each `values-<env>.yaml` next to a chart is diffed as its own environment
     required: true
-  values:
-    description: Newline-separated list of values files, relative to the repository root
-    required: false
-    default: ""
   base-ref:
     description: Branch or commit to compare against
     required: false
@@ -84,8 +80,7 @@ runs:
       shell: bash
       env:
         HELM_DIFF: ${{ steps.install.outputs.bin }}
-        CHART: ${{ inputs.chart }}
-        VALUES: ${{ inputs.values }}
+        CHARTS_DIR: ${{ inputs.charts-dir }}
         BASE_REF: ${{ inputs.base-ref }}
         ARGS: ${{ inputs.args }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
