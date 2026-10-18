@@ -103,14 +103,13 @@ func helmDiff(root string, opts options, w io.Writer) (bool, error) {
 	defer os.RemoveAll(tmp)
 
 	base := filepath.Join(tmp, "base")
-	if err := command(root, "git", "fetch", "--quiet", "--no-tags", "--depth=1", "origin", opts.BaseRef).Run(); err != nil {
+	cleanup, err := checkoutBase(root, opts.BaseRef, base)
+	if err != nil {
 		return false, err
 	}
-	if err := command(root, "git", "worktree", "add", "--quiet", "--detach", base, "FETCH_HEAD").Run(); err != nil {
-		return false, err
-	}
-	defer command(root, "git", "worktree", "remove", "--force", base).Run()
+	defer cleanup()
 
+	findCharts(base, "testdata")
 	baseYAML, headYAML := filepath.Join(tmp, "base.yaml"), filepath.Join(tmp, "head.yaml")
 	if err := render(base, opts, baseYAML); err != nil {
 		return false, err
