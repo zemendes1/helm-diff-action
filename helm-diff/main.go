@@ -4,7 +4,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -50,19 +49,9 @@ func run() error {
 		return err
 	}
 
-	var buf strings.Builder
-	w := io.MultiWriter(&buf, os.Stdout)
-	changed, err := helmDiff(root, opts, w)
+	diffs, err := helmDiff(root, opts)
 	if err != nil {
 		return err
-	}
-
-	diffs := []chartDiff{
-		{
-			chartPath:  opts.ChartsDir, // TODO: change this once helmDiff's changes are implemented
-			diff:       buf.String(),
-			hasChanged: changed,
-		},
 	}
 
 	prNumber, err := getPrNumber()
@@ -82,82 +71,109 @@ func run() error {
 				return err
 			}
 		}
-
 	}
+
+	var anyChartChanged bool
+
+	for _, diff := range diffs {
+		if diff.hasChanged {
+			anyChartChanged = true
+			break
+		}
+	}
+
 	githubOutput := os.Getenv("GITHUB_OUTPUT")
 	if githubOutput == "" {
-		slog.Warn("GITHUB_OUTPUT unset, not writing outputs", "changed", changed)
+		slog.Warn("GITHUB_OUTPUT unset, not writing outputs", "changed", anyChartChanged)
 		return nil
 	}
-	return setOutput("changed", fmt.Sprint(changed), githubOutput)
+	return setOutput("changed", fmt.Sprint(anyChartChanged), githubOutput)
 }
 
 // helmDiff writes a unified diff of the chart's rendered manifests between opts.BaseRef and the
 // checkout at root to w, and reports whether they differ.
-func helmDiff(root string, opts options, w io.Writer) (bool, error) {
+func helmDiff(root string, opts options) ([]chartDiff, error) {
 	tmp, err := os.MkdirTemp("", "helm-diff")
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer os.RemoveAll(tmp)
 
 	base := filepath.Join(tmp, "base")
 	cleanup, err := checkoutBase(root, opts.BaseRef, base)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer cleanup()
 
 	baseCharts, err := findCharts(base, opts.ChartsDir)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	headCharts, err := findCharts(root, opts.ChartsDir)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	mergedCharts := slices.Concat(baseCharts, headCharts)
 	slices.Sort(mergedCharts)
 	mergedCharts = slices.Compact(mergedCharts)
 
-	baseYAML, headYAML := filepath.Join(tmp, "base.yaml"), filepath.Join(tmp, "head.yaml")
-	if err := render(base, opts, baseYAML); err != nil {
-		return false, err
-	}
-	if err := render(root, opts, headYAML); err != nil {
-		return false, err
+	var chartDiffs []chartDiff
+
+	for _, chart := range mergedCharts {
+		baseYAML, headYAML := filepath.Join(tmp, "base.yaml"), filepath.Join(tmp, "head.yaml")
+		if err := render(base, chart, opts, baseYAML); err != nil {
+			return nil, err
+		}
+		if err := render(root, chart, opts, headYAML); err != nil {
+			return nil, err
+		}
+		diff, hasChanged, err := diffFiles(root, opts.BaseRef, baseYAML, headYAML)
+		if err != nil {
+			return nil, err
+		}
+		chartDiffs = append(chartDiffs, chartDiff{chartPath: chart, diff: diff, hasChanged: hasChanged})
 	}
 
-	diff := command(root, "diff", "-u", "--label", opts.BaseRef, "--label", "HEAD", baseYAML, headYAML)
-	diff.Stdout = w
-	err = diff.Run()
+	return chartDiffs, err
+}
+
+// diffFiles writes a unified diff of baseFile and headFile to w, labelling the base side
+// baseLabel, and reports whether they differ.
+func diffFiles(dir, baseLabel, baseFile, headFile string) (string, bool, error) {
+	var diff strings.Builder
+
+	diffCommand := command(dir, "diff", "-u", "--label", baseLabel, "--label", "HEAD", baseFile, headFile)
+	diffCommand.Stdout = &diff
+
+	err := diffCommand.Run()
 	var exit *exec.ExitError
+
 	switch {
 	case err == nil:
-		fmt.Fprintln(w, "No changes.")
-		return false, nil
+		return "", false, nil
 	case errors.As(err, &exit) && exit.ExitCode() == 1:
-		return true, nil
+		return diff.String(), true, nil // the diff command printed the differences
 	default:
-		return false, err
+		return "", false, err
 	}
 }
 
 // render writes the chart's manifests in the checkout at dir to out; out is empty if the chart doesn't exist there.
-func render(dir string, opts options, out string) error {
+func render(dir string, chart string, opts options, out string) error {
 	f, err := os.Create(out)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	chart := filepath.Join(dir, opts.ChartsDir)
-	if !exists(filepath.Join(chart, "Chart.yaml")) {
+	chart_path := filepath.Join(dir, chart)
+	if !exists(filepath.Join(chart_path, "Chart.yaml")) {
 		return nil
 	}
-	args := []string{"template", chart, "--no-hooks"}
+	args := []string{"template", chart_path, "--no-hooks"}
 	cmd := command(dir, "helm", append(args, opts.Args...)...)
 	cmd.Stdout = f
 	return cmd.Run()

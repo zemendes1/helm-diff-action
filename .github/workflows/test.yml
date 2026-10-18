@@ -44,7 +44,7 @@ jobs:
 
       - name: Change the manifests
         run: |
-          echo "env: staging" > helm-diff/testdata/chart/values-prod.yaml
+          echo "env: staging" > helm-diff/testdata/chart/values.yaml
 
       - name: Run action with changes
         id: action-changed
