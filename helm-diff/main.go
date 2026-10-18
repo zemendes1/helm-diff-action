@@ -9,16 +9,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
 
 // options configures a diff. Paths are relative to the repository root.
 type options struct {
-	Chart   string
-	BaseRef string
-	Values  []string // values files; ones missing from a checkout are skipped there
-	Args    []string // extra arguments passed to helm template
+	ChartsDir string
+	BaseRef   string
+	Args      []string // extra arguments passed to helm template
 }
 
 func main() {
@@ -30,13 +30,12 @@ func main() {
 
 func run() error {
 	opts := options{
-		Chart:   os.Getenv("CHART"),
-		BaseRef: os.Getenv("BASE_REF"),
-		Values:  strings.Fields(os.Getenv("VALUES")),
-		Args:    strings.Fields(os.Getenv("ARGS")),
+		ChartsDir: os.Getenv("CHARTS_DIR"),
+		BaseRef:   os.Getenv("BASE_REF"),
+		Args:      strings.Fields(os.Getenv("ARGS")),
 	}
-	if opts.Chart == "" || opts.BaseRef == "" {
-		return errors.New("CHART and BASE_REF must be set")
+	if opts.ChartsDir == "" || opts.BaseRef == "" {
+		return errors.New("CHARTS_DIR and BASE_REF must be set")
 	}
 	postComment := true
 	if v := os.Getenv("COMMENT"); v != "" {
@@ -46,24 +45,24 @@ func run() error {
 		}
 	}
 
-	revParse := exec.Command("git", "rev-parse", "--show-toplevel")
-	revParse.Stderr = os.Stderr
-	top, err := revParse.Output()
+	root, err := repoRoot()
 	if err != nil {
 		return err
 	}
 
 	var buf strings.Builder
 	w := io.MultiWriter(&buf, os.Stdout)
-	changed, err := helmDiff(strings.TrimSpace(string(top)), opts, w)
+	changed, err := helmDiff(root, opts, w)
 	if err != nil {
 		return err
 	}
 
 	diffs := []chartDiff{
-		{chartPath: opts.Chart,
+		{
+			chartPath:  opts.ChartsDir, // TODO: change this once helmDiff's changes are implemented
 			diff:       buf.String(),
-			hasChanged: changed},
+			hasChanged: changed,
+		},
 	}
 
 	prNumber, err := getPrNumber()
@@ -109,7 +108,20 @@ func helmDiff(root string, opts options, w io.Writer) (bool, error) {
 	}
 	defer cleanup()
 
-	findCharts(base, "testdata")
+	baseCharts, err := findCharts(base, opts.ChartsDir)
+	if err != nil {
+		return false, err
+	}
+
+	headCharts, err := findCharts(root, opts.ChartsDir)
+	if err != nil {
+		return false, err
+	}
+
+	mergedCharts := slices.Concat(baseCharts, headCharts)
+	slices.Sort(mergedCharts)
+	mergedCharts = slices.Compact(mergedCharts)
+
 	baseYAML, headYAML := filepath.Join(tmp, "base.yaml"), filepath.Join(tmp, "head.yaml")
 	if err := render(base, opts, baseYAML); err != nil {
 		return false, err
@@ -141,16 +153,11 @@ func render(dir string, opts options, out string) error {
 	}
 	defer f.Close()
 
-	chart := filepath.Join(dir, opts.Chart)
+	chart := filepath.Join(dir, opts.ChartsDir)
 	if !exists(filepath.Join(chart, "Chart.yaml")) {
 		return nil
 	}
 	args := []string{"template", chart, "--no-hooks"}
-	for _, v := range opts.Values {
-		if p := filepath.Join(dir, v); exists(p) {
-			args = append(args, "--values", p)
-		}
-	}
 	cmd := command(dir, "helm", append(args, opts.Args...)...)
 	cmd.Stdout = f
 	return cmd.Run()

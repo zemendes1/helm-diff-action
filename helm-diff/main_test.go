@@ -20,66 +20,52 @@ func TestHelmDiff(t *testing.T) {
 	}{
 		{
 			name:       "unchanged chart",
-			opts:       options{Chart: "chart", Values: []string{"chart/values-prod.yaml"}},
+			opts:       options{ChartsDir: "chart"},
 			wantOutput: []string{"No changes."},
 		},
 		{
 			name:        "modified values",
-			opts:        options{Chart: "chart"},
+			opts:        options{ChartsDir: "chart"},
 			edit:        writeFile("chart/values.yaml", "message: changed\n"),
 			wantChanged: true,
 			wantOutput:  []string{"--- main\n+++ HEAD\n", `-  message: "hello"`, `+  message: "changed"`},
 		},
 		{
 			name: "modified template",
-			opts: options{Chart: "chart"},
+			opts: options{ChartsDir: "chart"},
 			edit: writeFile("chart/templates/service.yaml",
 				"apiVersion: v1\nkind: Service\nmetadata:\n  name: {{ .Release.Name }}\n"),
 			wantChanged: true,
 			wantOutput:  []string{"+kind: Service"},
 		},
 		{
-			name:        "values file missing on base",
-			opts:        options{Chart: "chart", Values: []string{"values-staging.yaml"}},
-			edit:        writeFile("values-staging.yaml", "env: staging\n"),
-			wantChanged: true,
-			wantOutput:  []string{`-  env: "dev"`, `+  env: "staging"`},
-		},
-		{
-			name:        "values file missing on head",
-			opts:        options{Chart: "chart", Values: []string{"chart/values-prod.yaml"}},
-			edit:        removeAll("chart/values-prod.yaml"),
-			wantChanged: true,
-			wantOutput:  []string{`-  env: "prod"`, `+  env: "dev"`},
-		},
-		{
 			name:        "chart missing on base",
-			opts:        options{Chart: "new-chart"},
+			opts:        options{ChartsDir: "new-chart"},
 			edit:        copyDir("chart", "new-chart"),
 			wantChanged: true,
 			wantOutput:  []string{"@@ -0,0 +1,", "+kind: ConfigMap"},
 		},
 		{
 			name:        "chart removed on head",
-			opts:        options{Chart: "chart"},
+			opts:        options{ChartsDir: "chart"},
 			edit:        removeAll("chart"),
 			wantChanged: true,
 			wantOutput:  []string{"+0,0 @@", "-kind: ConfigMap"},
 		},
 		{
 			name:       "args apply to both sides",
-			opts:       options{Chart: "chart", Args: []string{"--set", "message=override"}},
+			opts:       options{ChartsDir: "chart", Args: []string{"--set", "message=override"}},
 			edit:       writeFile("chart/values.yaml", "message: changed\n"),
 			wantOutput: []string{"No changes."},
 		},
 		{
 			name:    "unknown base ref",
-			opts:    options{Chart: "chart", BaseRef: "does-not-exist"},
+			opts:    options{ChartsDir: "chart", BaseRef: "does-not-exist"},
 			wantErr: true,
 		},
 		{
 			name:    "invalid template",
-			opts:    options{Chart: "chart"},
+			opts:    options{ChartsDir: "chart"},
 			edit:    writeFile("chart/templates/configmap.yaml", "{{ .Values.message"),
 			wantErr: true,
 		},
@@ -123,9 +109,8 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(filepath.Join(dir, "chart"))
-	t.Setenv("CHART", "chart")
+	t.Setenv("CHARTS_DIR", "chart")
 	t.Setenv("BASE_REF", "main")
-	t.Setenv("VALUES", "chart/values-prod.yaml\nvalues-missing.yaml\n")
 	t.Setenv("ARGS", "--namespace prod")
 	t.Setenv("GITHUB_OUTPUT", output)
 	t.Setenv("GITHUB_EVENT_PATH", event) // a push event, so run() doesn't comment
@@ -146,7 +131,7 @@ func TestRun(t *testing.T) {
 func TestRunLocally(t *testing.T) {
 	dir := newRepo(t)
 	t.Chdir(filepath.Join(dir, "chart"))
-	t.Setenv("CHART", "chart")
+	t.Setenv("CHARTS_DIR", "chart")
 	t.Setenv("BASE_REF", "main")
 	t.Setenv("GITHUB_OUTPUT", "")
 	t.Setenv("GITHUB_EVENT_PATH", "")
@@ -157,10 +142,10 @@ func TestRunLocally(t *testing.T) {
 }
 
 func TestRunRequiresInputs(t *testing.T) {
-	t.Setenv("CHART", "")
+	t.Setenv("CHARTS_DIR", "")
 	t.Setenv("BASE_REF", "main")
 	if err := run(); err == nil {
-		t.Error("run() succeeded without CHART")
+		t.Error("run() succeeded without CHARTS_DIR")
 	}
 }
 
