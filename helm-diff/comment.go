@@ -7,8 +7,17 @@ import (
 
 type chartDiff struct {
 	chartPath  string
+	values     string // the values-*.yaml file rendered with, or empty for the chart's defaults
 	diff       string
 	hasChanged bool
+}
+
+// name identifies the diff in the comment: the chart, and the values file if there is one.
+func (d chartDiff) name() string {
+	if d.values == "" {
+		return d.chartPath
+	}
+	return d.chartPath + " / " + d.values
 }
 
 const maxCharacterSize = 65536
@@ -31,7 +40,7 @@ func formatComment(chartDiffs []chartDiff) []string {
 	symbolsLenght := len(openDiff) + len(closeDiff) + len(newLine)
 
 	for index, d := range chartDiffs {
-		heading := fmt.Sprintf("\n### %d. %s:", index+1, d.chartPath)
+		heading := fmt.Sprintf("\n### %d. %s:", index+1, d.name())
 
 		headingSize := len(heading) + len(noDiff)
 		if d.hasChanged {

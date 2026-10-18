@@ -8,11 +8,12 @@ import (
 	"testing"
 )
 
-// wantDiff is the expected chartDiff for one chart.
+// wantDiff is the expected chartDiff for one chart and values file.
 type wantDiff struct {
 	chart   string
+	values  string
 	changed bool
-	output  []string // substrings of the diff; an unchanged chart's diff must be empty
+	output  []string // substrings of the diff; an unchanged diff must be empty
 }
 
 func TestHelmDiff(t *testing.T) {
@@ -26,41 +27,72 @@ func TestHelmDiff(t *testing.T) {
 		{
 			name: "unchanged chart",
 			opts: options{ChartsDir: "chart"},
-			want: []wantDiff{{chart: "chart"}},
+			want: []wantDiff{{chart: "chart", values: "values-prod.yaml"}, {chart: "chart", values: "values-stage.yaml"}},
 		},
 		{
-			name: "modified values",
+			name: "modified default values",
 			opts: options{ChartsDir: "chart"},
 			edit: writeFile("chart/values.yaml", "message: changed\n"),
-			want: []wantDiff{{chart: "chart", changed: true,
-				output: []string{"--- main\n+++ HEAD\n", `-  message: "hello"`, `+  message: "changed"`}}},
+			want: []wantDiff{
+				{chart: "chart", values: "values-prod.yaml", changed: true,
+					output: []string{"--- main\n+++ HEAD\n", `-  message: "hello"`, `+  message: "changed"`}},
+				{chart: "chart", values: "values-stage.yaml", changed: true, output: []string{`+  message: "changed"`}},
+			},
+		},
+		{
+			name: "modified one values file",
+			opts: options{ChartsDir: "chart"},
+			edit: writeFile("chart/values-prod.yaml", "env: staging\n"),
+			want: []wantDiff{
+				{chart: "chart", values: "values-prod.yaml", changed: true, output: []string{`-  env: "prod"`, `+  env: "staging"`}},
+				{chart: "chart", values: "values-stage.yaml"},
+			},
+		},
+		{
+			name: "values file missing on base",
+			opts: options{ChartsDir: "chart"},
+			edit: writeFile("chart/values-dev.yaml", "env: dev\n"),
+			want: []wantDiff{
+				{chart: "chart", values: "values-dev.yaml", changed: true, output: []string{"@@ -0,0 +1,", `+  env: "dev"`}},
+				{chart: "chart", values: "values-prod.yaml"},
+				{chart: "chart", values: "values-stage.yaml"},
+			},
+		},
+		{
+			name: "values file removed on head",
+			opts: options{ChartsDir: "chart"},
+			edit: removeAll("chart/values-stage.yaml"),
+			want: []wantDiff{
+				{chart: "chart", values: "values-prod.yaml"},
+				{chart: "chart", values: "values-stage.yaml", changed: true, output: []string{"+0,0 @@", `-  env: "stage"`}},
+			},
 		},
 		{
 			name: "modified template",
 			opts: options{ChartsDir: "chart"},
 			edit: writeFile("chart/templates/service.yaml",
 				"apiVersion: v1\nkind: Service\nmetadata:\n  name: {{ .Release.Name }}\n"),
-			want: []wantDiff{{chart: "chart", changed: true, output: []string{"+kind: Service"}}},
+			want: []wantDiff{
+				{chart: "chart", values: "values-prod.yaml", changed: true, output: []string{"+kind: Service"}},
+				{chart: "chart", values: "values-stage.yaml", changed: true, output: []string{"+kind: Service"}},
+			},
 		},
 		{
 			name: "chart missing on base",
 			opts: options{ChartsDir: "new-chart"},
 			edit: copyDir("chart", "new-chart"),
-			want: []wantDiff{{chart: "new-chart", changed: true, output: []string{"@@ -0,0 +1,", "+kind: ConfigMap"}}},
+			want: []wantDiff{
+				{chart: "new-chart", values: "values-prod.yaml", changed: true, output: []string{"@@ -0,0 +1,", "+kind: ConfigMap"}},
+				{chart: "new-chart", values: "values-stage.yaml", changed: true, output: []string{"@@ -0,0 +1,", "+kind: ConfigMap"}},
+			},
 		},
 		{
 			name: "chart removed on head",
 			opts: options{ChartsDir: "chart"},
 			edit: removeAll("chart"),
-			want: []wantDiff{{chart: "chart", changed: true, output: []string{"+0,0 @@", "-kind: ConfigMap"}}},
-		},
-		{
-			name: "directory where one chart changed",
-			opts: options{ChartsDir: "."},
-			edit: writeFile("chart/values.yaml", "message: changed\n"),
 			want: []wantDiff{
-				{chart: "chart", changed: true, output: []string{`+  message: "changed"`}},
-				{chart: "other-chart"},
+				{chart: "chart", values: "values-prod.yaml", changed: true, output: []string{"+0,0 @@", "-kind: ConfigMap"}},
+				{chart: "chart", values: "values-stage.yaml", changed: true, output: []string{"+0,0 @@", "-kind: ConfigMap"}},
 			},
 		},
 		{
@@ -68,16 +100,27 @@ func TestHelmDiff(t *testing.T) {
 			opts: options{ChartsDir: "."},
 			edit: copyDir("chart", "new-chart"),
 			want: []wantDiff{
-				{chart: "chart"},
-				{chart: "new-chart", changed: true, output: []string{"+kind: ConfigMap"}},
-				{chart: "other-chart"},
+				{chart: "chart", values: "values-prod.yaml"},
+				{chart: "chart", values: "values-stage.yaml"},
+				{chart: "new-chart", values: "values-prod.yaml", changed: true, output: []string{"+kind: ConfigMap"}},
+				{chart: "new-chart", values: "values-stage.yaml", changed: true, output: []string{"+kind: ConfigMap"}},
 			},
+		},
+		{
+			name: "chart without values files",
+			opts: options{ChartsDir: "plain-chart"},
+			edit: func(t *testing.T, dir string) {
+				copyDir("chart", "plain-chart")(t, dir)
+				removeAll("plain-chart/values-prod.yaml")(t, dir)
+				removeAll("plain-chart/values-stage.yaml")(t, dir)
+			},
+			want: []wantDiff{{chart: "plain-chart", changed: true, output: []string{`+  env: "dev"`}}},
 		},
 		{
 			name: "args apply to both sides",
 			opts: options{ChartsDir: "chart", Args: []string{"--set", "message=override"}},
 			edit: writeFile("chart/values.yaml", "message: changed\n"),
-			want: []wantDiff{{chart: "chart"}},
+			want: []wantDiff{{chart: "chart", values: "values-prod.yaml"}, {chart: "chart", values: "values-stage.yaml"}},
 		},
 		{
 			name:    "unknown base ref",
@@ -111,18 +154,18 @@ func TestHelmDiff(t *testing.T) {
 			}
 			for i, want := range tt.want {
 				got := diffs[i]
-				if got.chartPath != want.chart {
-					t.Errorf("diff %d chartPath = %q, want %q", i, got.chartPath, want.chart)
+				if got.chartPath != want.chart || got.values != want.values {
+					t.Errorf("diff %d = %s / %s, want %s / %s", i, got.chartPath, got.values, want.chart, want.values)
 				}
 				if got.hasChanged != want.changed {
-					t.Errorf("%s: hasChanged = %v, want %v", want.chart, got.hasChanged, want.changed)
+					t.Errorf("%s: hasChanged = %v, want %v", got.name(), got.hasChanged, want.changed)
 				}
 				if !want.changed && got.diff != "" {
-					t.Errorf("%s: unchanged chart has diff:\n%s", want.chart, got.diff)
+					t.Errorf("%s: unchanged diff isn't empty:\n%s", got.name(), got.diff)
 				}
 				for _, s := range want.output {
 					if !strings.Contains(got.diff, s) {
-						t.Errorf("%s: diff missing %q:\n%s", want.chart, s, got.diff)
+						t.Errorf("%s: diff missing %q:\n%s", got.name(), s, got.diff)
 					}
 				}
 			}

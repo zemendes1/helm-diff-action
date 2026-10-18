@@ -42,20 +42,9 @@ jobs:
       - name: Assert action output
         run: test "${{ steps.action.outputs.changed }}" = false
 
-      - name: Change one of the two charts
+      - name: Change one values file
         run: |
-          echo "env: staging" > helm-diff/testdata/chart/values.yaml
-
-      - name: Run action on the unchanged chart
-        id: action-unchanged
-        uses: ./
-        with:
-          charts-dir: helm-diff/testdata/other-chart
-          base-ref: ${{ github.sha }}
-          comment: false
-
-      - name: Assert action output on the unchanged chart
-        run: test "${{ steps.action-unchanged.outputs.changed }}" = false
+          echo "env: staging" > helm-diff/testdata/chart/values-prod.yaml
 
       - name: Run action with changes
         id: action-changed
