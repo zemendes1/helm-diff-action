@@ -55,12 +55,22 @@ func TestHelmDiff(t *testing.T) {
 			want: []wantDiff{{chart: "chart", changed: true, output: []string{"+0,0 @@", "-kind: ConfigMap"}}},
 		},
 		{
+			name: "directory where one chart changed",
+			opts: options{ChartsDir: "."},
+			edit: writeFile("chart/values.yaml", "message: changed\n"),
+			want: []wantDiff{
+				{chart: "chart", changed: true, output: []string{`+  message: "changed"`}},
+				{chart: "other-chart"},
+			},
+		},
+		{
 			name: "directory with an added chart",
 			opts: options{ChartsDir: "."},
 			edit: copyDir("chart", "new-chart"),
 			want: []wantDiff{
 				{chart: "chart"},
 				{chart: "new-chart", changed: true, output: []string{"+kind: ConfigMap"}},
+				{chart: "other-chart"},
 			},
 		},
 		{
