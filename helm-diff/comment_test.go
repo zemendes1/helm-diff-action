@@ -19,7 +19,7 @@ func TestFormatComment(t *testing.T) {
 			chartPath:  "charts/api",
 			diff:       "",
 			hasChanged: false}},
-		want: []string{"Ran helm diff for 2 charts:\n### 1. charts/web:\nNo diff detected.\n### 2. charts/api:\nNo diff detected."}},
+		want: []string{"Ran helm diff: 0 of 2 changed."}},
 		{name: "one chart changed one chart unchanged",
 			chartDiffs: []chartDiff{{
 				chartPath:  "charts/web",
@@ -28,21 +28,23 @@ func TestFormatComment(t *testing.T) {
 				chartPath:  "charts/api",
 				diff:       "--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n",
 				hasChanged: true}},
-			want: []string{"Ran helm diff for 2 charts:\n### 1. charts/web:\nNo diff detected.\n### 2. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n```"}},
+			want: []string{"Ran helm diff: 1 of 2 changed.\n### 1. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n```"}},
 		{name: "values files in headings",
 			chartDiffs: []chartDiff{{
 				chartPath:  "charts/api",
 				values:     "values-prod.yaml",
-				hasChanged: false}, {
+				diff:       "-a\n+b\n",
+				hasChanged: true}, {
 				chartPath:  "charts/web",
-				hasChanged: false}},
-			want: []string{"Ran helm diff for 2 charts:\n### 1. charts/api / values-prod.yaml:\nNo diff detected.\n### 2. charts/web:\nNo diff detected."}},
+				diff:       "-a\n+b\n",
+				hasChanged: true}},
+			want: []string{"Ran helm diff: 2 of 2 changed.\n### 1. charts/api / values-prod.yaml:\n```diff\n-a\n+b\n```\n### 2. charts/web:\n```diff\n-a\n+b\n```"}},
 		{name: "diff without trailing newline",
 			chartDiffs: []chartDiff{{
 				chartPath:  "charts/api",
 				diff:       "--- main\n+++ HEAD\n@@ -1 +1 @@\n-  env: \"prod\"\n+  env: \"staging\"",
 				hasChanged: true}},
-			want: []string{"Ran helm diff for 1 chart:\n### 1. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -1 +1 @@\n-  env: \"prod\"\n+  env: \"staging\"\n```"}}}
+			want: []string{"Ran helm diff: 1 of 1 changed.\n### 1. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -1 +1 @@\n-  env: \"prod\"\n+  env: \"staging\"\n```"}}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

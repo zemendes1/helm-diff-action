@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -53,11 +54,13 @@ func run() error {
 		return err
 	}
 
+	anyChartChanged := slices.ContainsFunc(diffs, func(d chartDiff) bool { return d.hasChanged })
+
 	prNumber, err := getPrNumber()
 	if err != nil {
 		return err
 	}
-	if postComment && prNumber != 0 {
+	if postComment && prNumber != 0 && anyChartChanged {
 		githubAPIURL := os.Getenv("GITHUB_API_URL")
 		githubRepository := os.Getenv("GITHUB_REPOSITORY")
 		githubToken := os.Getenv("GITHUB_TOKEN")
@@ -69,15 +72,6 @@ func run() error {
 			if err := postPRComment(comment, prNumber, githubAPIURL, githubRepository, githubToken); err != nil {
 				return err
 			}
-		}
-	}
-
-	var anyChartChanged bool
-
-	for _, diff := range diffs {
-		if diff.hasChanged {
-			anyChartChanged = true
-			break
 		}
 	}
 
