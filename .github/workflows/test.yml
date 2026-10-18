@@ -35,24 +35,33 @@ jobs:
         id: action
         uses: ./
         with:
-          chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/values-prod.yaml
+          charts-dir: helm-diff/testdata
           base-ref: ${{ github.sha }}
           comment: false
 
       - name: Assert action output
         run: test "${{ steps.action.outputs.changed }}" = false
 
-      - name: Change the manifests
+      - name: Change one of the two charts
         run: |
-          echo "env: staging" > helm-diff/testdata/values-prod.yaml
+          echo "env: staging" > helm-diff/testdata/chart/values.yaml
+
+      - name: Run action on the unchanged chart
+        id: action-unchanged
+        uses: ./
+        with:
+          charts-dir: helm-diff/testdata/other-chart
+          base-ref: ${{ github.sha }}
+          comment: false
+
+      - name: Assert action output on the unchanged chart
+        run: test "${{ steps.action-unchanged.outputs.changed }}" = false
 
       - name: Run action with changes
         id: action-changed
         uses: ./
         with:
-          chart: helm-diff/testdata/chart
-          values: helm-diff/testdata/values-prod.yaml
+          charts-dir: helm-diff/testdata
           base-ref: ${{ github.sha }}
 
       - name: Assert action output with changes
