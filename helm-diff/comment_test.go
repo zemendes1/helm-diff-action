@@ -29,6 +29,14 @@ func TestFormatComment(t *testing.T) {
 				diff:       "--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n",
 				hasChanged: true}},
 			want: []string{"Ran helm diff for 2 charts:\n### 1. charts/web:\nNo diff detected.\n### 2. charts/api:\n```diff\n--- main\n+++ HEAD\n@@ -5,5 +5,5 @@\n metadata:\n   name: release-name-config\n data:\n-  message: \"hello\"\n+  message: \"hello from the PR\"\n   env: \"prod\"\n```"}},
+		{name: "values files in headings",
+			chartDiffs: []chartDiff{{
+				chartPath:  "charts/api",
+				values:     "values-prod.yaml",
+				hasChanged: false}, {
+				chartPath:  "charts/web",
+				hasChanged: false}},
+			want: []string{"Ran helm diff for 2 charts:\n### 1. charts/api / values-prod.yaml:\nNo diff detected.\n### 2. charts/web:\nNo diff detected."}},
 		{name: "diff without trailing newline",
 			chartDiffs: []chartDiff{{
 				chartPath:  "charts/api",
