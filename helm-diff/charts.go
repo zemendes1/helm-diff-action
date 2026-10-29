@@ -42,9 +42,10 @@ func findValuesFiles(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	takenNames := []string{"Chart.yaml", "values.yaml"} // according to https://helm.sh/docs/topics/charts/#the-chart-file-structure
 	var files []string
 	for _, e := range entries {
-		if name := e.Name(); !e.IsDir() && strings.HasPrefix(name, "values-") && strings.HasSuffix(name, ".yaml") {
+		if name := e.Name(); !e.IsDir() && !slices.Contains(takenNames, name) && strings.HasSuffix(name, ".yaml") {
 			files = append(files, name)
 		}
 	}
